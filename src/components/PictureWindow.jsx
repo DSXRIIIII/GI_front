@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import styled from 'styled-components';
 import { Input, Button, Select, Spin } from 'antd';
 import { SendOutlined, LoadingOutlined } from '@ant-design/icons';
 import { chatApi } from '../api/services';
+import { addPictureMessage } from '../store/slices/pictureSlice';
+import { nanoid } from 'nanoid';
 
 const PictureContainer = styled.div`
   height: 100%;
@@ -29,7 +31,7 @@ const MessageBubble = styled.div`
 `;
 
 const BubbleContent = styled.div`
-  max-width: 70%;
+  max-width: 450px;
   padding: 12px 16px;
   border-radius: 12px;
   background-color: ${props => props.isUser ? '#1890ff' : '#fff'};
@@ -40,16 +42,24 @@ const BubbleContent = styled.div`
 `;
 
 const GeneratedImage = styled.img`
-  max-width: 100%;
+  max-width: 400px;
+  width: 100%;
+  height: auto;
   margin-top: 12px;
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: transform 0.2s;
+
+  &:hover {
+    transform: scale(1.02);
+  }
 `;
 
 const InputContainer = styled.div`
   position: fixed;
   bottom: 0;
-  left: 360px;
+  left: 400px;
   right: 0;
   background: white;
   padding: 20px;
@@ -87,13 +97,19 @@ const PictureWindow = () => {
   const [input, setInput] = useState('');
   const [selectedModel, setSelectedModel] = useState('chatglm-4v-plus');
   const [isLoading, setIsLoading] = useState(false);
-  const [messages, setMessages] = useState([]);
+  const [dialogueId, setDialogueId] = useState('');
+  const dispatch = useDispatch();
+  const messages = useSelector(state => state.picture.messages);
   const userInfo = useSelector(state => state.user.userInfo);
   const messagesEndRef = useRef(null);
 
   const models = [
     { value: 'chatglm-4v-plus', label: 'ChatGLM-4V-Plus' },
   ];
+
+  useEffect(() => {
+    setDialogueId(nanoid());
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -106,29 +122,34 @@ const PictureWindow = () => {
   const handleGenerate = async () => {
     if (!input.trim() || isLoading) return;
 
+    const recordId = nanoid();
     const userMessage = {
       type: 'user',
       content: input,
       timestamp: new Date().toISOString(),
+      recordId,
     };
-    setMessages(prev => [...prev, userMessage]);
+    dispatch(addPictureMessage(userMessage));
     setInput('');
     setIsLoading(true);
 
     try {
       const response = await chatApi.generateImage({
-        user_id: userInfo?.username,
+        user_id: localStorage.getItem('user_id'),
         question_about_picture: input,
         model: selectedModel,
+        dialogue_id: dialogueId,
+        record_id: recordId,
       });
 
       if (response.code === 200) {
         const aiMessage = {
           type: 'ai',
-          content: response.message,
+          content: response.message[0].url,
           timestamp: new Date().toISOString(),
+          recordId,
         };
-        setMessages(prev => [...prev, aiMessage]);
+        dispatch(addPictureMessage(aiMessage));
       }
     } catch (error) {
       console.error('Error generating image:', error);
@@ -148,7 +169,11 @@ const PictureWindow = () => {
               </LoadingContainer>
             )}
             <BubbleContent isUser={message.type === 'user'}>
-              {message.content}
+              {message.type === 'user' ? (
+                message.content
+              ) : (
+                <GeneratedImage src={message.content} alt="Generated" />
+              )}
             </BubbleContent>
           </MessageBubble>
         ))}

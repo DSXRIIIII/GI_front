@@ -20,6 +20,8 @@ import UserMenu from './UserMenu';
 const SidebarContainer = styled.div`
   background: #fff;
   height: 100vh;
+  width: 400px;
+  min-width: 280px;
   border-right: 1px solid #f0f0f0;
   display: flex;
   flex-direction: column;
@@ -28,12 +30,16 @@ const SidebarContainer = styled.div`
 
 const NewChatButton = styled(Button)`
   margin-bottom: 16px;
-  width: 100%;
+  width: 90%;
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
 `;
 
 const MenuContainer = styled.div`
   flex: 1;
   overflow-y: auto;
+  margin-bottom: 16px;
 `;
 
 const UserSection = styled.div`
@@ -43,6 +49,7 @@ const UserSection = styled.div`
   display: flex;
   align-items: center;
   gap: 12px;
+  margin-top: auto;
   
   &:hover {
     background: #f5f5f5;
@@ -69,6 +76,7 @@ const Sidebar = () => {
 
   const handleNewChat = () => {
     dispatch(clearMessages());
+    navigate('/chat');
   };
 
   const handleLogout = () => {
@@ -81,16 +89,19 @@ const Sidebar = () => {
       key: 'chat',
       icon: <MessageOutlined />,
       label: '对话',
+      onClick: () => navigate('/chat')
     },
     {
       key: 'image',
       icon: <PictureOutlined />,
       label: '图片生成',
+      onClick: () => navigate('/picture')
     },
     {
       key: 'history',
       icon: <HistoryOutlined />,
       label: '历史记录',
+      onClick: () => navigate('/history')
     },
   ];
 

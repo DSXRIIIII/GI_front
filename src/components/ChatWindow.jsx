@@ -16,6 +16,7 @@ import bash from 'react-syntax-highlighter/dist/cjs/languages/prism/bash';
 import json from 'react-syntax-highlighter/dist/cjs/languages/prism/json';
 import css from 'react-syntax-highlighter/dist/cjs/languages/prism/css';
 import golang from 'react-syntax-highlighter/dist/cjs/languages/prism/go';
+import { nanoid } from 'nanoid';
 
 SyntaxHighlighter.registerLanguage('java', java);
 SyntaxHighlighter.registerLanguage('javascript', javascript);
@@ -220,12 +221,18 @@ const ChatWindow = () => {
   const [input, setInput] = useState('');
   const [selectedModel, setSelectedModel] = useState('glm-4-flash');
   const [isLoading, setIsLoading] = useState(false);
+  const [dialogueId, setDialogueId] = useState('');
   const dispatch = useDispatch();
   const messages = useSelector(state => state.chat.messages);
   const userInfo = useSelector(state => state.user.userInfo);
   
   // 添加消息容器的引用
   const messagesEndRef = useRef(null);
+
+  // 组件挂载时生成新的对话ID
+  useEffect(() => {
+    setDialogueId(nanoid());
+  }, []);
 
   // 滚动到底部的函数
   const scrollToBottom = () => {
@@ -245,11 +252,12 @@ const ChatWindow = () => {
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
+    const recordId = nanoid();
     const userMessage = {
       type: 'user',
       content: input,
       timestamp: new Date().toISOString(),
-      isLoading: true, // 添加加载状态标记
+      recordId,
     };
     dispatch(addMessage(userMessage));
     setInput('');
@@ -257,10 +265,12 @@ const ChatWindow = () => {
 
     try {
       const response = await chatApi.sendMessage({
-        user_id: userInfo?.username,
+        user_id: localStorage.getItem('user_id'),
         question: input,
         model: selectedModel,
         role: 'user',
+        dialogue_id: dialogueId,
+        record_id: recordId,
       });
 
       if (response.code === 200) {
@@ -268,6 +278,7 @@ const ChatWindow = () => {
           type: 'ai',
           content: response.message,
           timestamp: new Date().toISOString(),
+          recordId,
         };
         dispatch(addMessage(aiMessage));
       }

@@ -1,24 +1,25 @@
 import React from 'react';
 import styled from 'styled-components';
 import Sidebar from '../components/Sidebar';
+import { Outlet } from 'react-router-dom';
 
 const LayoutContainer = styled.div`
-  display: grid;
-  grid-template-columns: 360px 1fr;
+  display: flex;
   height: 100vh;
-  background: #f0f2f5;
 `;
 
 const MainContent = styled.div`
-  padding: 20px;
-  overflow-y: auto;
+  flex: 1;
+  overflow: hidden;
 `;
 
-const MainLayout = ({ children }) => {
+const MainLayout = () => {
   return (
     <LayoutContainer>
       <Sidebar />
-      <MainContent>{children}</MainContent>
+      <MainContent>
+        <Outlet />
+      </MainContent>
     </LayoutContainer>
   );
 };
