@@ -55,7 +55,7 @@ const BubbleContent = styled.div`
   max-width: 70%;
   padding: 12px 16px;
   border-radius: 12px;
-  background-color: ${props => props.isUser ? '#1890ff' : '#fff'};
+  background-color: ${props => props.isUser ? '#2c2c2c' : '#fff'};
   color: ${props => props.isUser ? '#fff' : '#000'};
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   word-break: break-word;
@@ -183,7 +183,7 @@ const CodeBlock = styled.div`
 const InputContainer = styled.div`
   position: fixed;
   bottom: 0;
-  left: 360px;
+  left: 400px;
   right: 0;
   background: white;
   padding: 20px;
@@ -210,11 +210,28 @@ const StyledTextArea = styled(Input.TextArea)`
 
 const LoadingIcon = styled(LoadingOutlined)`
   font-size: 24px;
-  color: #1890ff;
+  color: #2c2c2c;
 `;
 
 const LoadingContainer = styled.div`
   padding: 8px;
+`;
+
+const StyledButton = styled(Button)`
+  &.ant-btn-primary {
+    background-color: #2c2c2c;
+    border-color: #2c2c2c;
+    
+    &:hover {
+      background-color: #3c3c3c;
+      border-color: #3c3c3c;
+    }
+
+    &:disabled {
+      background-color: #d9d9d9;
+      border-color: #d9d9d9;
+    }
+  }
 `;
 
 const ChatWindow = () => {
@@ -385,14 +402,14 @@ const ChatWindow = () => {
             autoSize={{ minRows: 1, maxRows: 6 }}
             disabled={isLoading}
           />
-          <Button 
+          <StyledButton 
             type="primary" 
             icon={<SendOutlined />}
             onClick={handleSend}
             disabled={isLoading}
           >
             发送
-          </Button>
+          </StyledButton>
         </InputWrapper>
       </InputContainer>
     </ChatContainer>

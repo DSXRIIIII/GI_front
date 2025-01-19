@@ -10,7 +10,25 @@ export const chatApi = {
   generateImage: async (data) => {
     const response = await axios.post(`${API_BASE_URL}/api/zp/question/picture`, data);
     return response.data;
-  }
+  },
+  getDialogueHistory: async (params) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/admin/dialogue/history`, params);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching dialogue history:', error);
+      throw error;
+    }
+  },
+  getDialogueDetail: async (params) => {
+    try {
+      const response = await axios.post(`${API_BASE_URL}/admin/dialogue/all`, params);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching dialogue detail:', error);
+      throw error;
+    }
+  },
 };
 
 export const imageApi = {

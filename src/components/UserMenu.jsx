@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Modal, Upload, message, Button, Form, Input } from 'antd';
-import { UserOutlined, EditOutlined } from '@ant-design/icons';
+import { Upload, message, Button, Form, Input } from 'antd';
+import { EditOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
 import { userApi } from '../api/services';
 import { updateUserInfo } from '../store/slices/userSlice';
@@ -78,6 +78,45 @@ const AvatarOverlay = styled.div`
   border-radius: 50%;
   cursor: pointer;
   color: white;
+`;
+
+const StyledButton = styled(Button)`
+  &.ant-btn-primary {
+    background-color: #2c2c2c;
+    border-color: #2c2c2c;
+    
+    &:hover {
+      background-color: #3c3c3c !important;
+      border-color: #3c3c3c !important;
+    }
+
+    &:active {
+      background-color: #3c3c3c !important;
+      border-color: #3c3c3c !important;
+    }
+
+    &:focus {
+      background-color: #2c2c2c;
+      border-color: #2c2c2c;
+    }
+
+    &:disabled {
+      background-color: #d9d9d9;
+      border-color: #d9d9d9;
+    }
+  }
+
+  &.ant-btn-default {
+    &:hover {
+      color: #3c3c3c !important;
+      border-color: #3c3c3c !important;
+    }
+
+    &:active {
+      color: #3c3c3c !important;
+      border-color: #3c3c3c !important;
+    }
+  }
 `;
 
 const UserMenu = ({ onClose }) => {
@@ -277,14 +316,14 @@ const UserMenu = ({ onClose }) => {
               </div>
             </div>
           </InfoDisplay>
-          <Button 
+          <StyledButton 
             type="primary" 
             icon={<EditOutlined />} 
             onClick={() => setIsEditing(true)}
             block
           >
             修改信息
-          </Button>
+          </StyledButton>
         </>
       ) : (
         <Form
@@ -355,7 +394,7 @@ const UserMenu = ({ onClose }) => {
 
           <Form.Item>
             <Button.Group style={{ width: '100%' }}>
-              <Button 
+              <StyledButton 
                 style={{ width: '50%' }} 
                 onClick={() => {
                   setIsEditing(false);
@@ -363,14 +402,14 @@ const UserMenu = ({ onClose }) => {
                 }}
               >
                 取消
-              </Button>
-              <Button 
+              </StyledButton>
+              <StyledButton 
                 type="primary" 
                 htmlType="submit" 
                 style={{ width: '50%' }}
               >
                 保存
-              </Button>
+              </StyledButton>
             </Button.Group>
           </Form.Item>
         </Form>

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Menu, Button, Dropdown, Avatar,Popover } from 'antd';
-import UserCenter from './UserCenter';
+import { Menu, Button, Avatar } from 'antd';
 import {
   MessageOutlined,
   PictureOutlined,
@@ -16,6 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import { clearMessages } from '../store/slices/chatSlice';
 import { logout } from '../store/slices/userSlice';
 import UserMenu from './UserMenu';
+import HistoryDialog from './HistoryDialog';
 
 const SidebarContainer = styled.div`
   background: #fff;
@@ -34,12 +34,43 @@ const NewChatButton = styled(Button)`
   display: block;
   margin-left: auto;
   margin-right: auto;
+
+  &.ant-btn-primary {
+    background-color: #2c2c2c;
+    border-color: #2c2c2c;
+    
+    &:hover {
+      background-color: #3c3c3c;
+      border-color: #3c3c3c;
+    }
+  }
 `;
 
 const MenuContainer = styled.div`
   flex: 1;
   overflow-y: auto;
   margin-bottom: 16px;
+
+  /* 修改菜单选中和悬浮时的颜色 */
+  .ant-menu-item {
+    &:hover {
+      color: #3c3c3c !important;
+    }
+    
+    &.ant-menu-item-selected {
+      background-color: #f0f0f0 !important;
+      color: #2c2c2c !important;
+      
+      &::after {
+        border-right-color: #2c2c2c !important;
+      }
+    }
+  }
+
+  /* 修改菜单项图标颜色 */
+  .ant-menu-item-selected .anticon {
+    color: #2c2c2c !important;
+  }
 `;
 
 const UserSection = styled.div`
@@ -73,6 +104,7 @@ const Sidebar = () => {
   const navigate = useNavigate();
   const userInfo = useSelector(state => state.user.userInfo);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [historyVisible, setHistoryVisible] = useState(false);
 
   const handleNewChat = () => {
     dispatch(clearMessages());
@@ -84,6 +116,16 @@ const Sidebar = () => {
     navigate('/login');
   };
 
+  const handleHistoryClick = () => {
+    setHistoryVisible(true);
+  };
+
+  const handleSelectDialogue = (dialogueId, dialogue) => {
+    // 处理选中的历史对话
+    console.log('Selected dialogue:', dialogueId, dialogue);
+    // TODO: 根据需求处理历史对话的加载
+  };
+
   const menuItems = [
     {
       key: 'chat',
@@ -92,7 +134,7 @@ const Sidebar = () => {
       onClick: () => navigate('/chat')
     },
     {
-      key: 'image',
+      key: 'picture',
       icon: <PictureOutlined />,
       label: '图片生成',
       onClick: () => navigate('/picture')
@@ -101,8 +143,8 @@ const Sidebar = () => {
       key: 'history',
       icon: <HistoryOutlined />,
       label: '历史记录',
-      onClick: () => navigate('/history')
-    },
+      onClick: handleHistoryClick
+    }
   ];
 
   // 用户下拉菜单项
@@ -176,6 +218,12 @@ const Sidebar = () => {
       {showUserMenu && (
         <UserMenu onClose={() => setShowUserMenu(false)} />
       )}
+
+      <HistoryDialog
+        visible={historyVisible}
+        onClose={() => setHistoryVisible(false)}
+        onSelectDialogue={handleSelectDialogue}
+      />
     </SidebarContainer>
   );
 };

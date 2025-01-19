@@ -10,7 +10,7 @@ import ChatWindow from './components/ChatWindow';
 import ImageGeneration from './components/ImageGeneration';
 import GlobalStyle from './styles/GlobalStyle';
 import PictureWindow from './components/PictureWindow';
-// import HistoryWindow from './components/HistoryWindow'; // 暂时注释掉
+import DialogueDetail from './pages/DialogueDetail';
 
 const PrivateRoute = ({ children }) => {
   const token = useSelector(state => state.user.token);
@@ -35,9 +35,6 @@ const App = () => {
           >
             <Route path="chat" element={<ChatWindow />} />
             <Route path="picture" element={<PictureWindow />} />
-            {/* 暂时注释掉历史记录路由
-            <Route path="history" element={<HistoryWindow />} />
-            */}
           </Route>
           <Route
             path="/image"
@@ -49,6 +46,7 @@ const App = () => {
               </PrivateRoute>
             }
           />
+          <Route path="/:type/:id" element={<DialogueDetail />} />
         </Routes>
       </BrowserRouter>
     </ConfigProvider>
