@@ -20,7 +20,6 @@ const LoginCard = styled(Card)`
 
 const Login = () => {
   const navigate = useNavigate();
-  const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [form] = Form.useForm();

@@ -68,7 +68,6 @@ const HistoryDialog = ({ visible, onClose, onSelectDialogue }) => {
   const [historyData, setHistoryData] = useState([]);
   const [messageType, setMessageType] = useState('MESSAGE');
   const [selectedModel, setSelectedModel] = useState('glm-4-flash');
-  const userInfo = useSelector(state => state.user.userInfo);
   const navigate = useNavigate();
 
   // 消息类型选项

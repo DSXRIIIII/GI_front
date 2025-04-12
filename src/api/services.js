@@ -3,9 +3,56 @@ import axios from 'axios';
 const API_BASE_URL = 'http://127.0.0.1:8091';
 
 export const chatApi = {
-  sendMessage: async (data) => {
-    const response = await axios.post(`${API_BASE_URL}/api/zp/question/message`, data);
-    return response.data;
+  sendMessage: async (data, onChunk) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/zp/question/message`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'text/event-stream',
+        },
+        body: JSON.stringify(data),
+      });
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        // 将新的数据添加到缓冲区
+        buffer += decoder.decode(value, { stream: true });
+
+        // 处理缓冲区中的完整事件
+        const events = buffer.split('\n\n');
+        buffer = events.pop() || ''; // 保留最后一个不完整的事件
+
+        for (const event of events) {
+          if (!event.trim()) continue;
+
+          // 解析事件数据
+          const lines = event.split('\n');
+          const eventType = lines[0].replace('event:', '');
+          const data = lines[1].replace('data:', '');
+
+          if (eventType === 'message') {
+            try {
+              const parsedData = JSON.parse(data);
+              if (parsedData.code === 200) {
+                onChunk(parsedData.message);
+              }
+            } catch (e) {
+              console.error('Error parsing SSE data:', e);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error in sendMessage:', error);
+      throw error;
+    }
   },
   generateImage: async (data) => {
     const response = await axios.post(`${API_BASE_URL}/api/zp/question/picture`, data);
@@ -115,6 +162,13 @@ export const userApi = {
 export const adminApi = {
   getAllRecords: async () => {
     const response = await axios.get(`${API_BASE_URL}/api/admin/all`);
+    return response.data;
+  }
+};
+
+export const bilibiliApi = {
+  getHotspot: async () => {
+    const response = await axios.get(`${API_BASE_URL}/api/bilibili/hotspot`);
     return response.data;
   }
 }; 

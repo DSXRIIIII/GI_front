@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import styled from 'styled-components';
+import styled, { createGlobalStyle } from 'styled-components';
 import { Input, Button, Select, Spin, message } from 'antd';
-import { SendOutlined, LoadingOutlined } from '@ant-design/icons';
+import { SendOutlined, LoadingOutlined, FileImageOutlined, FileOutlined, ClearOutlined } from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
 import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight } from 'react-syntax-highlighter/dist/cjs/styles/prism';
-import { chatApi } from '../api/services';
-import { addMessage } from '../store/slices/chatSlice';
+import { chatApi, bilibiliApi } from '../api/services';
+import { addMessage, setHasShownWelcome, updateMessage } from '../store/slices/chatSlice';
 import java from 'react-syntax-highlighter/dist/cjs/languages/prism/java';
 import javascript from 'react-syntax-highlighter/dist/cjs/languages/prism/javascript';
 import python from 'react-syntax-highlighter/dist/cjs/languages/prism/python';
@@ -17,6 +17,7 @@ import json from 'react-syntax-highlighter/dist/cjs/languages/prism/json';
 import css from 'react-syntax-highlighter/dist/cjs/languages/prism/css';
 import golang from 'react-syntax-highlighter/dist/cjs/languages/prism/go';
 import { nanoid } from 'nanoid';
+import bilibiliIcon from '../icons/bilibili.png';
 
 SyntaxHighlighter.registerLanguage('java', java);
 SyntaxHighlighter.registerLanguage('javascript', javascript);
@@ -32,13 +33,24 @@ const ChatContainer = styled.div`
   display: flex;
   flex-direction: column;
   position: relative;
+  overflow: hidden;
 `;
 
 const MessagesContainer = styled.div`
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 20px;
   margin-bottom: 140px;
+  
+  scrollbar-width: thin;
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+  }
 `;
 
 // 消息气泡样式
@@ -186,9 +198,56 @@ const InputContainer = styled.div`
   left: 400px;
   right: 0;
   background: white;
-  padding: 20px;
-  border-top: 1px solid #e8e8e8;
+  padding: 16px 20px;
+  border-top: 1px solid rgba(232, 232, 232, 0.8);
   z-index: 1000;
+`;
+
+const ToolbarContainer = styled.div`
+  padding: 4px 0;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  margin-bottom: 12px;
+`;
+
+const ToolbarButton = styled(Button)`
+  &.ant-btn {
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 12px;
+    font-size: 13px;
+    height: 36px;
+    color: rgba(0, 0, 0, 0.65);
+    
+    &:hover,
+    &:focus {
+      color: #000000;
+      border-color: #000000;
+      background: rgba(0, 0, 0, 0.05);
+    }
+
+    .anticon {
+      color: inherit;
+    }
+  }
+
+  &.ant-btn-primary {
+    background: #000000;
+    border-color: #000000;
+    color: #ffffff;
+
+    &:hover,
+    &:focus {
+      background: #2c2c2c !important;
+      border-color: #2c2c2c !important;
+      color: #ffffff;
+    }
+  }
 `;
 
 const InputWrapper = styled.div`
@@ -202,10 +261,12 @@ const InputWrapper = styled.div`
 const ModelSelect = styled(Select)`
   width: 160px;
   min-width: 160px;
+
 `;
 
 const StyledTextArea = styled(Input.TextArea)`
   flex: 1;
+  resize: none;  // 禁用拖拉调整大小
 `;
 
 const LoadingIcon = styled(LoadingOutlined)`
@@ -217,20 +278,46 @@ const LoadingContainer = styled.div`
   padding: 8px;
 `;
 
-const StyledButton = styled(Button)`
-  &.ant-btn-primary {
-    background-color: #2c2c2c;
-    border-color: #2c2c2c;
-    
-    &:hover {
-      background-color: #3c3c3c;
-      border-color: #3c3c3c;
-    }
+// 创建自定义图标组件
+const BilibiliIcon = styled.img`
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+`;
 
-    &:disabled {
-      background-color: #d9d9d9;
-      border-color: #d9d9d9;
+const SendButton = styled(Button)`
+  &.ant-btn {
+    background: #000000;
+    border-color: #000000;
+    color: #ffffff;
+    
+    &:hover,
+    &:focus {
+      background: #2c2c2c;  // 浅一点的黑色
+      border-color: #2c2c2c;
+      color: #ffffff;
     }
+    
+    &:active {
+      background: #404040;  // 点击时更浅的黑色
+      border-color: #404040;
+    }
+  }
+`;
+
+// 覆盖全局 antd 按钮样式
+const GlobalStyle = createGlobalStyle`
+  .ant-btn:hover,
+  .ant-btn:focus {
+    background: rgba(0, 0, 0, 0.05) !important;
+    border-color: #000000 !important;
+    color: #000000 !important;
+  }
+
+  .ant-btn-primary:hover,
+  .ant-btn-primary:focus {
+    background: #2c2c2c !important;
+    color: #ffffff !important;
   }
 `;
 
@@ -239,17 +326,39 @@ const ChatWindow = () => {
   const [selectedModel, setSelectedModel] = useState('glm-4-flash');
   const [isLoading, setIsLoading] = useState(false);
   const [dialogueId, setDialogueId] = useState('');
+  const [streamContent, setStreamContent] = useState('');
   const dispatch = useDispatch();
   const messages = useSelector(state => state.chat.messages);
-  const userInfo = useSelector(state => state.user.userInfo);
+  const hasShownWelcome = useSelector(state => state.chat.hasShownWelcome);
   
   // 添加消息容器的引用
   const messagesEndRef = useRef(null);
 
-  // 组件挂载时生成新的对话ID
+  // 组件挂载时生成新的对话ID，并确保只生成一次
   useEffect(() => {
-    setDialogueId(nanoid());
-  }, []);
+    // 如果 dialogueId 为空，才生成新的
+    if (!dialogueId) {
+      const newDialogueId = nanoid();
+      setDialogueId(newDialogueId);
+    }
+
+    // 只在组件挂载时显示欢迎消息
+    if (!hasShownWelcome) {
+      const welcomeMessage = {
+        type: 'system',
+        content: '欢迎来到超酷的 [GI] 智能体平台🥳！\n\n' +
+                 'DeepSeek、ChatGLM 等超强大的对话模型已经准备好与你畅聊啦🤖。\n\n' +
+                 '它们就像知识渊博的伙伴🧑‍🤝‍🧑，时刻待命。\n\n' +
+                 '现在，只需动动手指🖱️，在下方的输入框中大胆分享你的想法、疑问、故事💬。\n\n' +
+                 '无论是探索宇宙奥秘🌌，还是讨论生活趣事😃，亦或是寻求创意灵感🎨，都没问题。\n\n' +
+                 '即刻开启这场充满惊喜的智能交互之旅吧🚀，每一次对话都可能带来意想不到的收获✨！',
+        timestamp: new Date().toISOString(),
+        recordId: nanoid(),
+      };
+      dispatch(addMessage(welcomeMessage));
+      dispatch(setHasShownWelcome(true));
+    }
+  }, [dialogueId, hasShownWelcome, dispatch]);
 
   // 滚动到底部的函数
   const scrollToBottom = () => {
@@ -263,44 +372,52 @@ const ChatWindow = () => {
 
   const models = [
     { value: 'glm-4-flash', label: 'GLM-4-Flash' },
-    { value: 'other-model', label: '其他模型' },
+    { value: 'deepseek-v3', label: 'DeepSeek-V3' },
   ];
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
     const recordId = nanoid();
+    // 发送用户消息
     const userMessage = {
       type: 'user',
       content: input,
       timestamp: new Date().toISOString(),
-      recordId,
+      recordId: recordId + '_user',  // 为用户消息添加特定标识
     };
     dispatch(addMessage(userMessage));
     setInput('');
     setIsLoading(true);
 
     try {
-      const response = await chatApi.sendMessage({
+      // 创建 AI 回复的消息
+      const aiMessage = {
+        type: 'ai',
+        content: '',  // 初始内容为空
+        timestamp: new Date().toISOString(),
+        recordId: recordId + '_ai',  // 为 AI 消息添加特定标识
+      };
+      dispatch(addMessage(aiMessage));
+
+      await chatApi.sendMessage({
         user_id: localStorage.getItem('user_id'),
         question: input,
         model: selectedModel,
         role: 'user',
         dialogue_id: dialogueId,
         record_id: recordId,
+      }, (chunk) => {
+        // 更新 AI 消息的内容
+        dispatch(updateMessage({
+          recordId: recordId + '_ai',  // 使用 AI 消息的 recordId
+          content: (prevContent) => prevContent + chunk
+        }));
       });
 
-      if (response.code === 200) {
-        const aiMessage = {
-          type: 'ai',
-          content: response.message,
-          timestamp: new Date().toISOString(),
-          recordId,
-        };
-        dispatch(addMessage(aiMessage));
-      }
     } catch (error) {
       console.error('Error sending message:', error);
+      message.error('发送消息失败');
     } finally {
       setIsLoading(false);
     }
@@ -353,66 +470,138 @@ const ChatWindow = () => {
         );
       }
       return <code className={className} {...props}>{children}</code>;
+    },
+    a: ({node, children, href, ...props}) => {
+      return (
+        <a
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          {...props}
+        >
+          {children}
+        </a>
+      );
+    }
+  };
+
+  const handleBilibiliHotspot = async () => {
+    if (isLoading) return;
+
+    // 获取当前日期并格式化
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = today.getMonth() + 1;
+    const day = today.getDate();
+    const dateStr = `${year}年${month}月${day}日`;
+
+    const recordId = nanoid();
+    const userMessage = {
+      type: 'user',
+      content: `${dateStr}B站热点`,
+      timestamp: new Date().toISOString(),
+      recordId,
+    };
+    dispatch(addMessage(userMessage));
+    setIsLoading(true);
+
+    try {
+      const response = await bilibiliApi.getHotspot();
+      if (response.code === 200) {
+        const aiMessage = {
+          type: 'ai',
+          content: `### 🔥 B站热点榜 ${dateStr}\n\n` +
+                   `${response.report.report}\n\n` +
+                   `---\n\n` +
+                   `> 💡 想了解更多精彩内容？[点击查看 B站热门视频](https://www.bilibili.com/v/popular)\n\n` +
+                   `*数据更新时间：${new Date().toLocaleTimeString()}*`,
+          timestamp: new Date().toISOString(),
+          recordId,
+        };
+        dispatch(addMessage(aiMessage));
+      }
+    } catch (error) {
+      console.error('Error fetching bilibili hotspot:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <ChatContainer>
-      <MessagesContainer>
-        {messages.map((message, index) => (
-          <MessageBubble key={index} isUser={message.type === 'user'}>
-            {message.type === 'user' && isLoading && index === messages.length - 1 && (
-              <LoadingContainer>
-                <Spin indicator={<LoadingIcon spin />} />
-              </LoadingContainer>
-            )}
-            <BubbleContent isUser={message.type === 'user'}>
-              {message.type === 'user' ? (
-                message.content
-              ) : (
-                <ReactMarkdown components={components}>
-                  {message.content}
-                </ReactMarkdown>
+    <>
+      <GlobalStyle />
+      <ChatContainer>
+        <MessagesContainer>
+          {messages.map((message, index) => (
+            <MessageBubble key={index} isUser={message.type === 'user'}>
+              {message.type === 'user' && isLoading && index === messages.length - 1 && (
+                <LoadingContainer>
+                  <Spin indicator={<LoadingIcon spin />} />
+                </LoadingContainer>
               )}
-            </BubbleContent>
-          </MessageBubble>
-        ))}
-        <div ref={messagesEndRef} />
-      </MessagesContainer>
-      
-      <InputContainer>
-        <InputWrapper>
-          <ModelSelect
-            value={selectedModel}
-            onChange={setSelectedModel}
-            options={models}
-            placeholder="选择模型"
-            disabled={isLoading}
-          />
-          <StyledTextArea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onPressEnter={(e) => {
-              if (!e.shiftKey && !isLoading) {
-                e.preventDefault();
-                handleSend();
-              }
-            }}
-            placeholder="输入消息..."
-            autoSize={{ minRows: 1, maxRows: 6 }}
-            disabled={isLoading}
-          />
-          <StyledButton 
-            type="primary" 
-            icon={<SendOutlined />}
-            onClick={handleSend}
-            disabled={isLoading}
-          >
-            发送
-          </StyledButton>
-        </InputWrapper>
-      </InputContainer>
-    </ChatContainer>
+              <BubbleContent isUser={message.type === 'user'}>
+                {message.type === 'user' ? (
+                  message.content
+                ) : (
+                  <ReactMarkdown components={components}>
+                    {message.content}
+                  </ReactMarkdown>
+                )}
+              </BubbleContent>
+            </MessageBubble>
+          ))}
+          <div ref={messagesEndRef} />
+        </MessagesContainer>
+        
+        <InputContainer>
+          <ToolbarContainer>
+            <ToolbarButton 
+              icon={<BilibiliIcon src={bilibiliIcon} alt="bilibili" />}
+              onClick={handleBilibiliHotspot}
+              disabled={isLoading}
+            >
+              B站热点
+            </ToolbarButton>
+            <ToolbarButton icon={<FileOutlined />}>
+              上传文件
+            </ToolbarButton>
+            <ToolbarButton icon={<ClearOutlined />}>
+              清空对话
+            </ToolbarButton>
+          </ToolbarContainer>
+          <InputWrapper>
+            <ModelSelect
+              value={selectedModel}
+              onChange={setSelectedModel}
+              options={models}
+              placeholder="选择模型"
+              disabled={isLoading}
+            />
+            <StyledTextArea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onPressEnter={(e) => {
+                if (!e.shiftKey && !isLoading) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+              placeholder="输入消息..."
+              autoSize={{ minRows: 1, maxRows: 6 }}
+              disabled={isLoading}
+            />
+            <SendButton 
+              type="primary" 
+              icon={<SendOutlined />}
+              onClick={handleSend}
+              disabled={isLoading}
+            >
+              发送
+            </SendButton>
+          </InputWrapper>
+        </InputContainer>
+      </ChatContainer>
+    </>
   );
 };
 

@@ -4,7 +4,7 @@ import styled from 'styled-components';
 import { Input, Button, Select, Spin } from 'antd';
 import { SendOutlined, LoadingOutlined } from '@ant-design/icons';
 import { chatApi } from '../api/services';
-import { addPictureMessage } from '../store/slices/pictureSlice';
+import { addPictureMessage, setHasShownWelcome } from '../store/slices/pictureSlice';
 import { nanoid } from 'nanoid';
 
 const PictureContainer = styled.div`
@@ -110,23 +110,58 @@ const StyledButton = styled(Button)`
   }
 `;
 
+// 添加模型配置集合
+const MODEL_OPTIONS = {
+  'chatglm-4v-plus': {
+    value: 'glm-4-flash', // API 请求使用的实际值
+    label: 'ChatGLM-4V-Plus', // 展示给用户看的标签
+    description: '通用图像生成模型' // 可选的描述信息
+  },
+  // 后续可以方便地添加更多模型
+  // 'model-2': {
+  //   value: 'actual-model-2-name',
+  //   label: 'Model 2 Display Name',
+  //   description: 'Model 2 Description'
+  // },
+};
+
 const PictureWindow = () => {
   const [input, setInput] = useState('');
-  const [selectedModel, setSelectedModel] = useState('chatglm-4v-plus');
+  const [selectedModel, setSelectedModel] = useState('chatglm-4v-plus'); // 修改默认值为配置中的 key
   const [isLoading, setIsLoading] = useState(false);
   const [dialogueId, setDialogueId] = useState('');
   const dispatch = useDispatch();
   const messages = useSelector(state => state.picture.messages);
-  const userInfo = useSelector(state => state.user.userInfo);
   const messagesEndRef = useRef(null);
+  const hasShownWelcome = useSelector(state => state.picture.hasShownWelcome);
 
-  const models = [
-    { value: 'chatglm-4v-plus', label: 'ChatGLM-4V-Plus' },
-  ];
+  // 将模型选项转换为 Select 组件需要的格式
+  const models = Object.entries(MODEL_OPTIONS).map(([key, model]) => ({
+    value: key,
+    label: model.label
+  }));
 
   useEffect(() => {
-    setDialogueId(nanoid());
-  }, []);
+    if (!hasShownWelcome) {
+      setDialogueId(nanoid());
+
+      // 添加欢迎话术
+      const welcomeMessage = {
+        type: 'system',
+        content: '欢迎来到 [GI] 智能体图像生成平台🎨！\n\n' +
+                 '这里有强大的 ChatGLM-4V-Plus 图像生成模型，可以将您的创意转化为精美的图像✨。目前正在开发LiblibAI生图功能... 敬请期待\n\n' +
+                 '您可以尝试描述：\n' +
+                 '• 一个具体的场景或物体🌅\n' +
+                 '• 特定的艺术风格或滤镜效果🎭\n' +
+                 '• 色彩、构图的细节要求🖼️\n\n' +
+                 '现在，请在下方输入框中描述您想要生成的图片吧！🚀',
+        timestamp: new Date().toISOString(),
+        recordId: nanoid(),
+      };
+      dispatch(addPictureMessage(welcomeMessage));
+      dispatch(setHasShownWelcome(true)); // 更新标志
+    }
+  }, [hasShownWelcome, dispatch]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -154,7 +189,7 @@ const PictureWindow = () => {
       const response = await chatApi.generateImage({
         user_id: localStorage.getItem('user_id'),
         question_about_picture: input,
-        model: selectedModel,
+        model: MODEL_OPTIONS[selectedModel].value, // 使用映射后的实际模型值
         dialogue_id: dialogueId,
         record_id: recordId,
       });
@@ -162,7 +197,7 @@ const PictureWindow = () => {
       if (response.code === 200) {
         const aiMessage = {
           type: 'ai',
-          content: response.message[0].url,
+          content: response.message.url,
           timestamp: new Date().toISOString(),
           recordId,
         };
@@ -186,10 +221,10 @@ const PictureWindow = () => {
               </LoadingContainer>
             )}
             <BubbleContent isUser={message.type === 'user'}>
-              {message.type === 'user' ? (
-                message.content
-              ) : (
+              {message.type === 'ai' ? (
                 <GeneratedImage src={message.content} alt="Generated" />
+              ) : (
+                message.content // 直接显示文本内容
               )}
             </BubbleContent>
           </MessageBubble>
