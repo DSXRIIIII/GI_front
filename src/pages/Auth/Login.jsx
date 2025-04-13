@@ -1,21 +1,80 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, Card, message, Tabs } from 'antd';
+import { Form, Input, Button, Card, message, Tabs, Typography } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { userApi } from '../../api/services';
 import styled from 'styled-components';
+import backgroundImage from '../../assets/背景.png';
+import BlurText from '../../components/BlurText';
+
+const { Title } = Typography;
 
 const LoginContainer = styled.div`
   height: 100vh;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
-  background: #f0f2f5;
+  background: url(${backgroundImage}) no-repeat center center fixed;
+  background-size: cover;
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(5px);
+  }
+`;
+
+const ContentWrapper = styled.div`
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+const StyledTitle = styled.div`
+  margin-bottom: 24px;
+  font-size: 28px;
+  font-weight: bold;
+  color: #000000;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
 `;
 
 const LoginCard = styled(Card)`
   width: 400px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  
+  .ant-tabs-nav::before {
+    border-bottom: none;
+  }
+  
+  .ant-tabs-tab {
+    font-size: 16px;
+    padding: 12px 0;
+  }
+  
+  .ant-form-item-label > label {
+    font-weight: 500;
+  }
+  
+  .ant-input, .ant-input-password {
+    border-radius: 4px;
+    height: 40px;
+  }
+  
+  .ant-btn {
+    height: 40px;
+    border-radius: 4px;
+    font-weight: 500;
+  }
 `;
 
 const Login = () => {
@@ -24,6 +83,10 @@ const Login = () => {
   const [countdown, setCountdown] = useState(0);
   const [form] = Form.useForm();
   const [sendingEmail, setSendingEmail] = useState(false);
+
+  const handleAnimationComplete = () => {
+    console.log('Title animation completed!');
+  };
 
   // 处理账号密码登录
   const handlePasswordLogin = async (values) => {
@@ -190,16 +253,27 @@ const Login = () => {
 
   return (
     <LoginContainer>
-      <LoginCard>
-        <Tabs
-          defaultActiveKey="password"
-          items={items}
-          centered
-        />
-        <Button type="link" onClick={() => navigate('/register')} block>
-          还没有账号？立即注册
-        </Button>
-      </LoginCard>
+      <ContentWrapper>
+        <StyledTitle>
+          <BlurText
+            text="GI智能问答 | AI助手🤩"
+            delay={100}
+            animateBy="words"
+            direction="top"
+            onAnimationComplete={handleAnimationComplete}
+          />
+        </StyledTitle>
+        <LoginCard>
+          <Tabs
+            defaultActiveKey="password"
+            items={items}
+            centered
+          />
+          <Button type="link" onClick={() => navigate('/register')} block>
+            还没有账号？立即注册
+          </Button>
+        </LoginCard>
+      </ContentWrapper>
     </LoginContainer>
   );
 };
