@@ -171,4 +171,11 @@ export const bilibiliApi = {
     const response = await axios.get(`${API_BASE_URL}/api/bilibili/hotspot`);
     return response.data;
   }
+};
+
+export const douyinApi = {
+  getHotspot: async () => {
+    const response = await axios.get(`${API_BASE_URL}/api/douyin/hotspot`);
+    return response.data;
+  }
 }; 

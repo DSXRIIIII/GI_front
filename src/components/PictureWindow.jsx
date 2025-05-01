@@ -118,18 +118,18 @@ const MODEL_OPTIONS = {
     description: '通用图像生成模型' // 可选的描述信息
   },
   // 后续可以方便地添加更多模型
-  // 'model-2': {
-  //   value: 'actual-model-2-name',
-  //   label: 'Model 2 Display Name',
-  //   description: 'Model 2 Description'
-  // },
+  'liblib-ai': {
+    value: 'liblib-ai',
+    label: 'LiblibAI-F.1',
+    description: 'liblib图像生成模型'
+  },
 };
 
 const PictureWindow = () => {
   const [input, setInput] = useState('');
-  const [selectedModel, setSelectedModel] = useState('chatglm-4v-plus'); // 修改默认值为配置中的 key
+  const [selectedModel, setSelectedModel] = useState('chatglm-4v-plus');
   const [isLoading, setIsLoading] = useState(false);
-  const [dialogueId, setDialogueId] = useState('');
+  const [dialogueId, setDialogueId] = useState(nanoid());
   const dispatch = useDispatch();
   const messages = useSelector(state => state.picture.messages);
   const messagesEndRef = useRef(null);
@@ -143,8 +143,6 @@ const PictureWindow = () => {
 
   useEffect(() => {
     if (!hasShownWelcome) {
-      setDialogueId(nanoid());
-
       // 添加欢迎话术
       const welcomeMessage = {
         type: 'system',
@@ -159,7 +157,7 @@ const PictureWindow = () => {
         recordId: nanoid(),
       };
       dispatch(addPictureMessage(welcomeMessage));
-      dispatch(setHasShownWelcome(true)); // 更新标志
+      dispatch(setHasShownWelcome(true));
     }
   }, [hasShownWelcome, dispatch]);
 
@@ -173,6 +171,11 @@ const PictureWindow = () => {
 
   const handleGenerate = async () => {
     if (!input.trim() || isLoading) return;
+
+    // 如果 dialogueId 为空，重新生成一个
+    if (!dialogueId) {
+      setDialogueId(nanoid());
+    }
 
     const recordId = nanoid();
     const userMessage = {
@@ -189,7 +192,7 @@ const PictureWindow = () => {
       const response = await chatApi.generateImage({
         user_id: localStorage.getItem('user_id'),
         question_about_picture: input,
-        model: MODEL_OPTIONS[selectedModel].value, // 使用映射后的实际模型值
+        model: MODEL_OPTIONS[selectedModel].value,
         dialogue_id: dialogueId,
         record_id: recordId,
       });

@@ -79,10 +79,14 @@ const HistoryDialog = ({ visible, onClose, onSelectDialogue }) => {
   // 根据消息类型定义不同的模型选项
   const chatModelOptions = [
     { value: 'glm-4-flash', label: 'GLM-4-Flash' },
+    { value: 'gpt-3.5-turbo-0613', label: 'chatgpt-3.5-turbo' },
+    { value: 'gpt-4o', label: 'chatgpt-4o' },
+    { value: 'o1-mini', label: 'chatgpt-o1-mini' },
   ];
 
   const pictureModelOptions = [
-    { value: 'glm-4v-plus', label: 'GLM-4V-Plus' }
+    { value: 'glm-4v-plus', label: 'GLM-4V-Plus' },
+    { value: 'liblib-ai', label: 'LiblibAI-F.1' },
   ];
 
   // 根据消息类型获取对应的模型选项

@@ -6,8 +6,8 @@ import { SendOutlined, LoadingOutlined, FileImageOutlined, FileOutlined, ClearOu
 import ReactMarkdown from 'react-markdown';
 import { PrismLight as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight } from 'react-syntax-highlighter/dist/cjs/styles/prism';
-import { chatApi, bilibiliApi } from '../api/services';
-import { addMessage, setHasShownWelcome, updateMessage } from '../store/slices/chatSlice';
+import { chatApi, bilibiliApi, douyinApi } from '../api/services';
+import { addMessage, setHasShownWelcome, updateMessage, clearMessages } from '../store/slices/chatSlice';
 import java from 'react-syntax-highlighter/dist/cjs/languages/prism/java';
 import javascript from 'react-syntax-highlighter/dist/cjs/languages/prism/javascript';
 import python from 'react-syntax-highlighter/dist/cjs/languages/prism/python';
@@ -18,6 +18,7 @@ import css from 'react-syntax-highlighter/dist/cjs/languages/prism/css';
 import golang from 'react-syntax-highlighter/dist/cjs/languages/prism/go';
 import { nanoid } from 'nanoid';
 import bilibiliIcon from '../icons/bilibili.png';
+import douyinIcon from '../icons/douyin.png';
 
 SyntaxHighlighter.registerLanguage('java', java);
 SyntaxHighlighter.registerLanguage('javascript', javascript);
@@ -285,6 +286,12 @@ const BilibiliIcon = styled.img`
   object-fit: contain;
 `;
 
+const DouyinIcon = styled.img`
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+`;
+
 const SendButton = styled(Button)`
   &.ant-btn {
     background: #000000;
@@ -373,6 +380,9 @@ const ChatWindow = () => {
   const models = [
     { value: 'glm-4-flash', label: 'GLM-4-Flash' },
     { value: 'deepseek-v3', label: 'DeepSeek-V3' },
+    { value: 'gpt-3.5-turbo-0613', label: 'chatgpt-3.5-turbo' },
+    { value: 'gpt-4o', label: 'chatgpt-4o' },
+    { value: 'o1-mini', label: 'chatgpt-o1-mini' },
   ];
 
   const handleSend = async () => {
@@ -527,6 +537,49 @@ const ChatWindow = () => {
     }
   };
 
+  const handleDouyinHotspot = async () => {
+    if (isLoading) return;
+
+    const recordId = nanoid();
+    const userMessage = {
+      type: 'user',
+      content: '获取抖音热点',
+      timestamp: new Date().toISOString(),
+      recordId: recordId + '_user',
+    };
+    dispatch(addMessage(userMessage));
+
+    try {
+      setIsLoading(true);
+      const response = await douyinApi.getHotspot();
+      
+      if (response.code === 200) {
+        const aiMessage = {
+          type: 'ai',
+          content: response.report.report,
+          timestamp: new Date().toISOString(),
+          recordId: recordId + '_ai',
+        };
+        dispatch(addMessage(aiMessage));
+      } else {
+        message.error('获取抖音热点失败');
+      }
+    } catch (error) {
+      console.error('Error fetching douyin hotspot:', error);
+      message.error('获取抖音热点失败');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleClearMessages = () => {
+    dispatch(clearMessages());
+    // 生成新的对话ID
+    const newDialogueId = nanoid();
+    setDialogueId(newDialogueId);
+    message.success('对话已清空');
+  };
+
   return (
     <>
       <GlobalStyle />
@@ -562,10 +615,18 @@ const ChatWindow = () => {
             >
               B站热点
             </ToolbarButton>
-            <ToolbarButton icon={<FileOutlined />}>
-              上传文件
+            <ToolbarButton 
+              icon={<DouyinIcon src={douyinIcon} alt="douyin" />}
+              onClick={handleDouyinHotspot}
+              disabled={isLoading}
+            >
+              抖音热点
             </ToolbarButton>
-            <ToolbarButton icon={<ClearOutlined />}>
+            <ToolbarButton 
+              icon={<ClearOutlined />}
+              onClick={handleClearMessages}
+              disabled={isLoading}
+            >
               清空对话
             </ToolbarButton>
           </ToolbarContainer>
